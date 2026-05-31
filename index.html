@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Analisis Data AI</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            color: #333;
+            line-height: 1.6;
+        }
+        button {
+            background-color: #000;
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover { background-color: #333; }
+        #loading { display: none; color: #666; font-style: italic; margin-top: 15px; }
+        #result {
+            margin-top: 20px;
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            white-space: pre-wrap; /* Agar format enter dari AI tidak hilang */
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Dashboard Analisis Spreadsheet</h1>
+    <p>Klik tombol di bawah untuk meminta AI (Gemini) membaca dan menganalisis data dari Google Spreadsheet secara *real-time*.</p>
+    
+    <button id="analyzeBtn">Mulai Analisis Data</button>
+    
+    <div id="loading">Memproses data dengan AI... (Bisa memakan waktu 10-15 detik)</div>
+    <div id="result">Hasil analisis dan rekomendasi akan muncul di sini.</div>
+
+    <script>
+        // GANTI DENGAN URL WEB APP DARI GOOGLE APPS SCRIPT (Langkah 2)
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzpZdhUrZmTebjItYfy51lJGLg_YaXfxibR_DIeNECfpPo5bRMsFL-I1fhdW8N19_ej/exec';
+
+        document.getElementById('analyzeBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('analyzeBtn');
+            const loading = document.getElementById('loading');
+            const resultDiv = document.getElementById('result');
+
+            // Set UI State
+            btn.disabled = true;
+            loading.style.display = 'block';
+            resultDiv.innerText = '';
+
+            try {
+                // Mengambil data dari Google Apps Script
+                const response = await fetch(WEB_APP_URL);
+                const result = await response.json();
+
+                if (result.success) {
+                    // Tampilkan hasil dari AI
+                    resultDiv.innerText = result.data;
+                } else {
+                    resultDiv.innerText = "Terjadi kesalahan pada server: " + result.error;
+                }
+            } catch (error) {
+                resultDiv.innerText = "Gagal terhubung. Pastikan URL Web App benar dan internet lancar.";
+                console.error(error);
+            } finally {
+                // Reset UI State
+                btn.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+    </script>
+
+</body>
+</html>
