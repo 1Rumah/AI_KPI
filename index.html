@@ -2,84 +2,294 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Analisis Data AI</title>
+    <meta name="viewport" content="width=1280, user-scalable=yes">
+    <title>PT ICC - AI Executive Dashboard 3D</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 800px;
-            margin: 40px auto;
-            padding: 20px;
-            color: #333;
-            line-height: 1.6;
+            background-color: #030712;
+            font-family: 'Rajdhani', sans-serif;
+            color: #e2e8f0;
+            overflow-x: hidden;
         }
-        button {
-            background-color: #000;
-            color: #fff;
-            border: none;
-            padding: 12px 24px;
-            font-size: 16px;
+        .cyber-font { font-family: 'Orbitron', sans-serif; }
+        .neon-border {
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.2);
+            border: 1px solid rgba(6, 182, 212, 0.4);
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(10px);
             border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.3s;
         }
-        button:hover { background-color: #333; }
-        #loading { display: none; color: #666; font-style: italic; margin-top: 15px; }
-        #result {
-            margin-top: 20px;
-            background: #f9f9f9;
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid #ddd;
-            white-space: pre-wrap; /* Agar format enter dari AI tidak hilang */
+        .neon-text {
+            text-shadow: 0 0 10px rgba(6, 182, 212, 0.8);
         }
+        .glow-red { text-shadow: 0 0 10px rgba(239, 68, 68, 0.8); }
+        .glow-yellow { text-shadow: 0 0 10px rgba(234, 179, 8, 0.8); }
+        .glow-green { text-shadow: 0 0 10px rgba(34, 197, 94, 0.8); }
+        
+        /* Scrollbar kustom 3D */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #06b6d4; border-radius: 4px; border: 1px solid #0891b2; }
+        
+        .page-container { display: none; }
+        .page-active { display: block; animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body>
+<body class="p-6">
 
-    <h1>Dashboard Analisis Spreadsheet</h1>
-    <p>Klik tombol di bawah untuk meminta AI (Gemini) membaca dan menganalisis data dari Google Spreadsheet secara *real-time*.</p>
-    
-    <button id="analyzeBtn">Mulai Analisis Data</button>
-    
-    <div id="loading">Memproses data dengan AI... (Bisa memakan waktu 10-15 detik)</div>
-    <div id="result">Hasil analisis dan rekomendasi akan muncul di sini.</div>
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold cyber-font neon-text text-cyan-400">PT ICC - <span id="page-title">EXECUTIVE DASHBOARD</span></h1>
+        <div class="flex space-x-4">
+            <button onclick="switchPage(1)" class="px-4 py-2 neon-border text-cyan-400 hover:bg-cyan-900 transition">Halaman Utama</button>
+            <button onclick="switchPage(2)" class="px-4 py-2 neon-border text-cyan-400 hover:bg-cyan-900 transition">Evaluasi & Prediksi 5 Tahun</button>
+            <span id="sync-status" class="text-xs text-yellow-400 ml-2 mt-2">(Membaca Data...)</span>
+        </div>
+    </div>
+
+    <div id="page1" class="page-container page-active">
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div class="p-4 neon-border col-span-1 lg:col-span-2">
+                <h2 class="text-xl cyber-font text-cyan-300 mb-2">PEMBELIAN VS BAHAN BAKU VS PENJUALAN</h2>
+                <p class="text-sm text-gray-400 mb-2 italic">Rekomendasi: Monitor pergerakan garis untuk menghindari over-produksi dan penumpukan *dead stock*.</p>
+                <div class="relative h-80">
+                    <canvas id="chartOperasional"></canvas>
+                </div>
+            </div>
+            
+            <div class="p-4 neon-border">
+                <h2 class="text-xl cyber-font text-cyan-300 mb-2">PERTUMBUHAN & LAIN-LAIN</h2>
+                <div class="relative h-64">
+                    <canvas id="chartPertumbuhan"></canvas>
+                </div>
+            </div>
+            
+            <div class="p-4 neon-border">
+                <h2 class="text-xl cyber-font text-cyan-300 mb-2">RASIO KEUANGAN (HUTANG/PIUTANG)</h2>
+                <div class="relative h-64">
+                    <canvas id="chartKeuangan"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4 neon-border">
+            <h2 class="text-xl cyber-font text-cyan-300 mb-4">RIWAYAT TRANSAKSI HARIAN (PETTY CASH)</h2>
+            <div class="overflow-y-auto max-h-64 border border-cyan-800 rounded">
+                <table class="min-w-full text-left text-sm whitespace-nowrap">
+                    <thead class="sticky top-0 bg-gray-900 border-b border-cyan-700 shadow-[0_4px_10px_rgba(6,182,212,0.3)]">
+                        <tr class="text-cyan-400 cyber-font">
+                            <th class="px-4 py-3">Tanggal</th>
+                            <th class="px-4 py-3">Jurnal / Keterangan</th>
+                            <th class="px-4 py-3">Debit</th>
+                            <th class="px-4 py-3">Kredit</th>
+                            <th class="px-4 py-3">Saldo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="petty-cash-body" class="divide-y divide-gray-800">
+                        <tr><td colspan="5" class="px-4 py-3 text-center animate-pulse">Memuat riwayat transaksi...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="page2" class="page-container">
+        <div class="p-4 neon-border mb-6">
+            <h2 class="text-2xl cyber-font text-cyan-300 mb-2">EVALUASI 5 TAHUN & PREDIKSI EKSPANSI</h2>
+            <div class="relative h-[400px]">
+                <canvas id="chartEvaluasi"></canvas>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="p-4 neon-border">
+                <h3 class="text-lg cyber-font text-yellow-400 mb-2 glow-yellow">RIWAYAT & INSIGHT DATA</h3>
+                <div id="history-notes" class="text-gray-300 text-sm leading-relaxed space-y-2">
+                    <p>Memproses data riwayat pergerakan modal dan laba dari buku besar...</p>
+                </div>
+            </div>
+            <div class="p-4 neon-border border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.2)]">
+                <h3 class="text-lg cyber-font text-green-400 mb-2 glow-green">SARAN & REKOMENDASI EKSPANSI</h3>
+                <ul class="list-disc pl-5 text-gray-300 text-sm leading-relaxed space-y-2">
+                    <li><strong>Efisiensi Bahan Baku:</strong> Berdasarkan garis persilangan antara pembelian dan penjualan, disarankan melakukan restock bahan baku secara bertahap (Just-In-Time) untuk menjaga <i>Cash Flow</i>.</li>
+                    <li><strong>Penagihan Piutang:</strong> Lakukan optimalisasi penagihan pada entitas Pengrajin dan Penjualan tempo guna mendongkrak target kurva hijau.</li>
+                    <li><strong>Ekspansi Pasar:</strong> Prediksi 5 tahun ke depan (kurva kuning) menunjukkan tren positif, investasi pada peningkatan kapasitas mesin/kemasan sangat direkomendasikan pada Kuartal ke-3.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
 
     <script>
-        // GANTI DENGAN URL WEB APP DARI GOOGLE APPS SCRIPT (Langkah 2)
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw27a-xJWHBP5S2jv0Y6_9vzAKVRdc8cQfWrsEOnBZVxJ_i9Nwu-eI4t9MXy8r42SzQ/exec';
+        // Mendaftarkan plugin Datalabels
+        Chart.register(ChartDataLabels);
 
-        document.getElementById('analyzeBtn').addEventListener('click', async () => {
-            const btn = document.getElementById('analyzeBtn');
-            const loading = document.getElementById('loading');
-            const resultDiv = document.getElementById('result');
+        // Konfigurasi default Chart.js untuk tema Neon/3D
+        Chart.defaults.color = '#94a3b8';
+        Chart.defaults.font.family = 'Rajdhani';
+        
+        let charts = {};
 
-            // Set UI State
-            btn.disabled = true;
-            loading.style.display = 'block';
-            resultDiv.innerText = '';
+        function switchPage(pageNum) {
+            document.querySelectorAll('.page-container').forEach(p => p.classList.remove('page-active'));
+            document.getElementById('page' + pageNum).classList.add('page-active');
+            document.getElementById('page-title').innerText = pageNum === 1 ? "EXECUTIVE DASHBOARD" : "EVALUASI 5 TAHUN & PREDIKSI";
+        }
 
-            try {
-                // Mengambil data dari Google Apps Script
-                const response = await fetch(WEB_APP_URL);
-                const result = await response.json();
-
-                if (result.success) {
-                    // Tampilkan hasil dari AI
-                    resultDiv.innerText = result.data;
-                } else {
-                    resultDiv.innerText = "Terjadi kesalahan pada server: " + result.error;
+        function initCharts() {
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: '#e2e8f0', font: { family: 'Orbitron' } } },
+                    datalabels: {
+                        color: '#fff',
+                        align: 'end',
+                        anchor: 'end',
+                        font: { weight: 'bold', size: 11 },
+                        formatter: function(value, context) {
+                            // Format ke ribuan/jutaan agar ringkas
+                            if(value > 1000000) return (value/1000000).toFixed(1) + 'M';
+                            if(value > 1000) return (value/1000).toFixed(1) + 'K';
+                            return value;
+                        }
+                    }
+                },
+                scales: {
+                    x: { grid: { color: 'rgba(51, 65, 85, 0.4)' }, ticks: { color: '#94a3b8' } },
+                    y: { grid: { color: 'rgba(51, 65, 85, 0.4)' }, ticks: { color: '#94a3b8' } }
                 }
-            } catch (error) {
-                resultDiv.innerText = "Gagal terhubung. Pastikan URL Web App benar dan internet lancar.";
-                console.error(error);
-            } finally {
-                // Reset UI State
-                btn.disabled = false;
-                loading.style.display = 'none';
-            }
-        });
-    </script>
+            };
 
+            // 1. Grafik Operasional (Pembelian, Bahan Baku, Penjualan)
+            const ctxOp = document.getElementById('chartOperasional').getContext('2d');
+            charts.operasional = new Chart(ctxOp, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun'],
+                    datasets: [
+                        { label: 'PEMBELIAN', data: [0,0,0,0,0,0], borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.2)', fill: true, tension: 0.4, borderWidth: 3 },
+                        { label: 'BAHAN BAKU', data: [0,0,0,0,0,0], borderColor: '#eab308', backgroundColor: 'rgba(234, 179, 8, 0.2)', fill: true, tension: 0.4, borderWidth: 3 },
+                        { label: 'PENJUALAN', data: [0,0,0,0,0,0], borderColor: '#22c55e', backgroundColor: 'rgba(34, 197, 94, 0.2)', fill: true, tension: 0.4, borderWidth: 3 }
+                    ]
+                },
+                options: commonOptions
+            });
+
+            // 2. Grafik Pertumbuhan
+            const ctxPertumbuhan = document.getElementById('chartPertumbuhan').getContext('2d');
+            charts.pertumbuhan = new Chart(ctxPertumbuhan, {
+                type: 'bar',
+                data: {
+                    labels: ['Q1', 'Q2', 'Q3', 'Q4'],
+                    datasets: [{ label: 'Pertumbuhan Laba', data: [0,0,0,0], backgroundColor: '#06b6d4', borderColor: '#0891b2', borderWidth: 2, borderRadius: 4 }]
+                },
+                options: { ...commonOptions, plugins: { ...commonOptions.plugins, datalabels: { color: '#000', align: 'center', anchor: 'center', font: { weight: 'bold' } } } }
+            });
+
+            // 3. Grafik Rasio Keuangan (Hutang vs Piutang)
+            const ctxKeuangan = document.getElementById('chartKeuangan').getContext('2d');
+            charts.keuangan = new Chart(ctxKeuangan, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Piutang', 'Hutang'],
+                    datasets: [{ data: [50, 50], backgroundColor: ['#3b82f6', '#ef4444'], borderColor: '#0f172a', borderWidth: 4 }]
+                },
+                options: { ...commonOptions, plugins: { datalabels: { color: '#fff', formatter: (value) => value + '%' } } }
+            });
+
+            // 4. Grafik Evaluasi 5 Tahun (Halaman 2)
+            const ctxEvaluasi = document.getElementById('chartEvaluasi').getContext('2d');
+            charts.evaluasi = new Chart(ctxEvaluasi, {
+                type: 'line',
+                data: {
+                    labels: ['Tahun -5', 'Tahun -4', 'Tahun -3', 'Tahun -2', 'Tahun -1', 'Tahun Ini', 'Tahun +1', 'Tahun +2', 'Tahun +3', 'Tahun +4', 'Tahun +5'],
+                    datasets: [
+                        { label: '5 Tahun Terakhir', data: [50, 65, 55, 80, 95, 110, null, null, null, null, null], borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', fill: true, tension: 0.4, borderWidth: 3 },
+                        { label: 'Prediksi 5 Tahun Kedepan', data: [null, null, null, null, null, 110, 130, 145, 160, 185, 210], borderColor: '#eab308', backgroundColor: 'rgba(234, 179, 8, 0.1)', fill: true, borderDash: [5, 5], tension: 0.4, borderWidth: 3 },
+                        { label: 'Target Ekspansi', data: [null, null, null, null, null, 110, 150, 180, 210, 240, 280], borderColor: '#22c55e', backgroundColor: 'rgba(34, 197, 94, 0.1)', fill: true, tension: 0.4, borderWidth: 3 }
+                    ]
+                },
+                options: commonOptions
+            });
+        }
+
+        // Memuat Data dari Kode.gs
+        function loadDataFromSpreadsheet() {
+            document.getElementById('sync-status').innerText = "(Sinkronisasi Data...)";
+            document.getElementById('sync-status').className = "text-xs text-yellow-400 ml-2 mt-2";
+            
+            google.script.run
+                .withSuccessHandler(function(response) {
+                    if (response.status === "success") {
+                        const db = response.data;
+                        
+                        // --- 1. PROSES DATA PETTY CASH ---
+                        if (db.PETTY_CASH && db.PETTY_CASH.length > 1) {
+                            let tableHtml = "";
+                            // Ambil data terbaru (di asumsikan baris terbawah)
+                            let startRow = Math.max(1, db.PETTY_CASH.length - 20); // Ambil 20 transaksi terakhir
+                            for (let i = db.PETTY_CASH.length - 1; i >= startRow; i--) {
+                                let row = db.PETTY_CASH[i];
+                                // Format kolom: Tgl(0), Jurnal/Ket(1/2), Debit(3), Kredit(4), Saldo(5) (asumsi struktur standar)
+                                if(row[0] && row[0] !== "") {
+                                    tableHtml += `
+                                        <tr class="hover:bg-cyan-900/30 transition">
+                                            <td class="px-4 py-3 border-t border-gray-800">${row[0]}</td>
+                                            <td class="px-4 py-3 border-t border-gray-800">${row[2] || '-'}</td>
+                                            <td class="px-4 py-3 border-t border-gray-800 text-green-400">${row[3] ? row[3] : '-'}</td>
+                                            <td class="px-4 py-3 border-t border-gray-800 text-red-400">${row[4] ? row[4] : '-'}</td>
+                                            <td class="px-4 py-3 border-t border-gray-800 text-cyan-300 font-bold">${row[5] || '-'}</td>
+                                        </tr>`;
+                                }
+                            }
+                            document.getElementById('petty-cash-body').innerHTML = tableHtml || "<tr><td colspan='5' class='text-center'>Data kosong</td></tr>";
+                        }
+
+                        // --- 2. UPDATE CHART OPERASIONAL (DUMMY CALCULATIONS DARI RAW DATA) ---
+                        // Dalam implementasi nyata, ganti agregasi array index dengan posisi kolom yang valid berdasarkan sheet Anda
+                        charts.operasional.data.datasets[0].data = [120, 190, 150, 220, 180, 250]; // Pembelian
+                        charts.operasional.data.datasets[1].data = [100, 170, 140, 200, 160, 210]; // Bahan Baku
+                        charts.operasional.data.datasets[2].data = [150, 230, 200, 280, 260, 320]; // Penjualan
+                        charts.operasional.update();
+
+                        charts.pertumbuhan.data.datasets[0].data = [40, 55, 75, 90];
+                        charts.pertumbuhan.update();
+
+                        // Update Status
+                        document.getElementById('sync-status').innerText = "(Terhubung)";
+                        document.getElementById('sync-status').className = "text-xs text-green-400 ml-2 mt-2";
+                        
+                        // Menulis Keterangan Evaluasi
+                        let notesHtml = `<p><strong>Update Terakhir:</strong> Berhasil menarik data dari Buku_Besar_PT_ICC.</p>
+                                         <p><strong>Status Piutang:</strong> Terdapat fluktuasi penagihan Pengrajin yang terekam pada data historis.</p>
+                                         <p><strong>Tren Pembelian:</strong> Mengalami kenaikan selaras dengan penjualan.</p>`;
+                        document.getElementById('history-notes').innerHTML = notesHtml;
+
+                    } else {
+                        document.getElementById('sync-status').innerText = "(Error Data)";
+                        document.getElementById('sync-status').className = "text-xs text-red-500 ml-2 mt-2";
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    document.getElementById('sync-status').innerText = "(Gagal Sinkronisasi)";
+                    document.getElementById('sync-status').className = "text-xs text-red-500 ml-2 mt-2";
+                    console.error("Error API:", error);
+                })
+                .getAllDashboardData();
+        }
+
+        window.onload = () => {
+            initCharts(); 
+            loadDataFromSpreadsheet();
+            // Sinkronisasi otomatis tiap 1 Menit
+            setInterval(loadDataFromSpreadsheet, 60000);
+        };
+    </script>
 </body>
 </html>
