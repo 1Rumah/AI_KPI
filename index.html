@@ -1,295 +1,354 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=1280, user-scalable=yes">
-    <title>PT ICC - AI Executive Dashboard 3D</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+  <base target="_top">
+  
+  <script src="https://code.highcharts.com/highcharts.js"></script>
+  <script src="https://code.highcharts.com/highcharts-3d.js"></script>
+  <script src="https://code.highcharts.com/modules/cylinder.js"></script>
+  <script src="https://code.highcharts.com/modules/funnel3d.js"></script>
+  <script src="https://code.highcharts.com/modules/exporting.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
-    
-    <style>
-        body {
-            background-color: #030712;
-            font-family: 'Rajdhani', sans-serif;
-            color: #e2e8f0;
-            overflow-x: hidden;
-        }
+   <style>
+        body { background-color: #030712; font-family: 'Rajdhani', sans-serif; color: #e2e8f0; overflow-x: hidden; }
         .cyber-font { font-family: 'Orbitron', sans-serif; }
         .neon-border {
             box-shadow: 0 0 15px rgba(6, 182, 212, 0.2);
             border: 1px solid rgba(6, 182, 212, 0.4);
-            background: rgba(15, 23, 42, 0.7);
+            background: rgba(15, 23, 42, 0.8);
             backdrop-filter: blur(10px);
             border-radius: 8px;
         }
-        .neon-text {
-            text-shadow: 0 0 10px rgba(6, 182, 212, 0.8);
-        }
-        .glow-red { text-shadow: 0 0 10px rgba(239, 68, 68, 0.8); }
-        .glow-yellow { text-shadow: 0 0 10px rgba(234, 179, 8, 0.8); }
-        .glow-green { text-shadow: 0 0 10px rgba(34, 197, 94, 0.8); }
-        
-        /* Scrollbar kustom 3D */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #0f172a; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb { background: #06b6d4; border-radius: 4px; border: 1px solid #0891b2; }
-        
-        .page-container { display: none; }
-        .page-active { display: block; animation: fadeIn 0.5s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .neon-text-blue { text-shadow: 0 0 10px rgba(6, 182, 212, 0.8); color: #06b6d4; }
+        #map { height: 400px; width: 100%; border-radius: 8px; filter: saturate(1.2) brightness(0.8); }
+        .clock-container { border-left: 2px solid #06b6d4; padding-left: 15px; }
+        .safety-line-legend { border-top: 2px dashed #ffffff; width: 30px; display: inline-block; margin-bottom: 4px; }
     </style>
+  <style>
+    :root {
+      --bg-dark: #0b0c10;
+      --panel-bg: #1f2833;
+      --neon-cyan: #00ffff;
+      --neon-pink: #ff00ff;
+      --text-light: #c5c6c7;
+    }
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-light);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0; padding: 20px;
+    }
+    h1, h2, h3 { color: var(--neon-cyan); text-shadow: 0 0 10px var(--neon-cyan); text-align: center;}
+    
+    /* Tabs */
+    .tab-container { display: flex; justify-content: center; margin-bottom: 20px; }
+    .tab {
+      background-color: transparent; border: 1px solid var(--neon-pink); color: var(--neon-pink);
+      padding: 10px 20px; cursor: pointer; transition: 0.3s; margin: 0 5px; font-weight: bold;
+      text-transform: uppercase; box-shadow: 0 0 5px var(--neon-pink);
+    }
+    .tab:hover, .tab.active {
+      background-color: var(--neon-pink); color: #000; box-shadow: 0 0 15px var(--neon-pink);
+    }
+    
+    /* KPI Cards */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+    .kpi-card {
+      background: var(--panel-bg); padding: 20px; border-radius: 8px; text-align: center;
+      border-bottom: 3px solid var(--neon-cyan); box-shadow: 0 4px 10px rgba(0, 255, 255, 0.2);
+    }
+    .kpi-card h3 { margin: 0 0 10px 0; font-size: 14px; color: var(--text-light); text-shadow: none; }
+    .kpi-card .value { font-size: 24px; font-weight: bold; color: var(--neon-cyan); text-shadow: 0 0 8px var(--neon-cyan); }
+    
+    /* Charts Grid */
+    .chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(45%, 1fr)); gap: 20px; }
+    .chart-container {
+      background: var(--panel-bg); padding: 15px; border-radius: 8px; border: 1px solid #333;
+      box-shadow: inset 0 0 10px #000;
+    }
+    .chart-box { height: 350px; width: 100%; }
+    
+    /* Annotations / Keterangan */
+    .annotation { margin-top: 15px; font-size: 13px; border-left: 3px solid var(--neon-pink); padding-left: 10px; }
+    .annotation span { display: block; margin-bottom: 5px; }
+    .keterangan { color: #aaa; }
+    .rekomendasi { color: var(--neon-cyan); }
+    .antisipasi { color: #ff6666; }
+
+    /* Live Stream Table */
+    .table-container {
+      margin-top: 30px; height: 250px; overflow-y: auto; background: var(--panel-bg);
+      border: 1px solid var(--neon-cyan); box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #000; color: var(--neon-pink); padding: 10px; position: sticky; top: 0; }
+    td { padding: 10px; border-bottom: 1px solid #333; text-align: center; }
+    tr:hover { background-color: #111; }
+    
+    .page { display: none; }
+    .page.active { display: block; }
+  </style>
 </head>
-<body class="p-6">
+<body class="p-4 md:p-6">
 
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold cyber-font neon-text text-cyan-400">PT ICC - <span id="page-title">EXECUTIVE DASHBOARD</span></h1>
-        <div class="flex space-x-4">
-            <button onclick="switchPage(1)" class="px-4 py-2 neon-border text-cyan-400 hover:bg-cyan-900 transition">Halaman Utama</button>
-            <button onclick="switchPage(2)" class="px-4 py-2 neon-border text-cyan-400 hover:bg-cyan-900 transition">Evaluasi & Prediksi 5 Tahun</button>
-            <span id="sync-status" class="text-xs text-yellow-400 ml-2 mt-2">(Membaca Data...)</span>
+   <header class="flex flex-col md:flex-row justify-between items-center mb-6 neon-border p-4 gap-4">
+        <div class="flex items-center gap-4">
+            
+            <div>
+                <h1 class="text-xl cyber-font neon-text-blue font-bold">PT. INTERNATIONAL CASSAVA CENTER</h1>
+                <p class="text-sm text-gray-400">AI Assistant <span id="sync-status" class="text-xs text-cyan-400 ml-2">(Syncing...)</span></p>
+            </div>
         </div>
-    </div>
-
-    <div id="page1" class="page-container page-active">
         
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <div class="p-4 neon-border col-span-1 lg:col-span-2">
-                <h2 class="text-xl cyber-font text-cyan-300 mb-2">PEMBELIAN VS BAHAN BAKU VS PENJUALAN</h2>
-                <p class="text-sm text-gray-400 mb-2 italic">Rekomendasi: Monitor pergerakan garis untuk menghindari over-produksi dan penumpukan *dead stock*.</p>
-                <div class="relative h-80">
-                    <canvas id="chartOperasional"></canvas>
-                </div>
+        <div class="flex items-center gap-6">
+            <div class="clock-container text-right">
+                <div id="live-clock" class="text-2xl font-bold cyber-font text-cyan-400">00:00:00</div>
+                <div id="live-date" class="text-sm text-gray-400 uppercase tracking-widest">Memuat Tanggal...</div>
             </div>
             
-            <div class="p-4 neon-border">
-                <h2 class="text-xl cyber-font text-cyan-300 mb-2">PERTUMBUHAN & LAIN-LAIN</h2>
-                <div class="relative h-64">
-                    <canvas id="chartPertumbuhan"></canvas>
-                </div>
-            </div>
-            
-            <div class="p-4 neon-border">
-                <h2 class="text-xl cyber-font text-cyan-300 mb-2">RASIO KEUANGAN (HUTANG/PIUTANG)</h2>
-                <div class="relative h-64">
-                    <canvas id="chartKeuangan"></canvas>
-                </div>
-            </div>
         </div>
+    </header>
+  
+  <div class="tab-container">
+    <button class="tab active" onclick="switchTab('page1')">Halaman 1: Monitoring Aktual</button>
+    <button class="tab" onclick="switchTab('page2')">Halaman 2: Proyeksi 3 Tahun</button>
+  </div>
 
-        <div class="p-4 neon-border">
-            <h2 class="text-xl cyber-font text-cyan-300 mb-4">RIWAYAT TRANSAKSI HARIAN (PETTY CASH)</h2>
-            <div class="overflow-y-auto max-h-64 border border-cyan-800 rounded">
-                <table class="min-w-full text-left text-sm whitespace-nowrap">
-                    <thead class="sticky top-0 bg-gray-900 border-b border-cyan-700 shadow-[0_4px_10px_rgba(6,182,212,0.3)]">
-                        <tr class="text-cyan-400 cyber-font">
-                            <th class="px-4 py-3">Tanggal</th>
-                            <th class="px-4 py-3">Jurnal / Keterangan</th>
-                            <th class="px-4 py-3">Debit</th>
-                            <th class="px-4 py-3">Kredit</th>
-                            <th class="px-4 py-3">Saldo</th>
-                        </tr>
-                    </thead>
-                    <tbody id="petty-cash-body" class="divide-y divide-gray-800">
-                        <tr><td colspan="5" class="px-4 py-3 text-center animate-pulse">Memuat riwayat transaksi...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+  <div id="page1" class="page active">
+    
+    <div class="kpi-grid">
+      <div class="kpi-card"><h3>TOTAL PENJUALAN</h3><div class="value" id="kpi-sales">Memuat...</div></div>
+      <div class="kpi-card"><h3>SALDO KAS BANK</h3><div class="value" id="kpi-cash">Memuat...</div></div>
+      <div class="kpi-card"><h3>TOTAL STOK GUDANG</h3><div class="value" id="kpi-stock">Memuat...</div></div>
+      <div class="kpi-card"><h3>TINGKAT EFISIENSI</h3><div class="value" id="kpi-efficiency">Memuat...</div></div>
     </div>
 
-    <div id="page2" class="page-container">
-        <div class="p-4 neon-border mb-6">
-            <h2 class="text-2xl cyber-font text-cyan-300 mb-2">EVALUASI 5 TAHUN & PREDIKSI EKSPANSI</h2>
-            <div class="relative h-[400px]">
-                <canvas id="chartEvaluasi"></canvas>
-            </div>
+    <div class="chart-grid">
+      <div class="chart-container">
+        <div id="chart-kolom" class="chart-box"></div>
+        <div class="annotation">
+          <span class="keterangan"><b>Keterangan:</b> Perbandingan Penjualan, Produksi, dan Bahan Baku.</span>
+          <span class="rekomendasi"><b>Rekomendasi:</b> Genjot produksi Sukabumi karena rasio penjualan sangat tinggi.</span>
+          <span class="antisipasi"><b>Antisipasi:</b> Kekurangan bahan baku jika permintaan melonjak di minggu ke-3.</span>
         </div>
+      </div>
+      
+      <div class="chart-container">
+        <div id="chart-pie" class="chart-box"></div>
+        <div class="annotation">
+          <span class="keterangan"><b>Keterangan:</b> Persentase distribusi stok di gudang (A1/A2 vs Sukabumi).</span>
+          <span class="rekomendasi"><b>Rekomendasi:</b> Lakukan clearance sale untuk stok Bogor A2 yang menumpuk.</span>
+          <span class="antisipasi"><b>Antisipasi:</b> Biaya penyimpanan (holding cost) naik akibat overstock A2.</span>
+        </div>
+      </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="p-4 neon-border">
-                <h3 class="text-lg cyber-font text-yellow-400 mb-2 glow-yellow">RIWAYAT & INSIGHT DATA</h3>
-                <div id="history-notes" class="text-gray-300 text-sm leading-relaxed space-y-2">
-                    <p>Memproses data riwayat pergerakan modal dan laba dari buku besar...</p>
-                </div>
-            </div>
-            <div class="p-4 neon-border border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.2)]">
-                <h3 class="text-lg cyber-font text-green-400 mb-2 glow-green">SARAN & REKOMENDASI EKSPANSI</h3>
-                <ul class="list-disc pl-5 text-gray-300 text-sm leading-relaxed space-y-2">
-                    <li><strong>Efisiensi Bahan Baku:</strong> Berdasarkan garis persilangan antara pembelian dan penjualan, disarankan melakukan restock bahan baku secara bertahap (Just-In-Time) untuk menjaga <i>Cash Flow</i>.</li>
-                    <li><strong>Penagihan Piutang:</strong> Lakukan optimalisasi penagihan pada entitas Pengrajin dan Penjualan tempo guna mendongkrak target kurva hijau.</li>
-                    <li><strong>Ekspansi Pasar:</strong> Prediksi 5 tahun ke depan (kurva kuning) menunjukkan tren positif, investasi pada peningkatan kapasitas mesin/kemasan sangat direkomendasikan pada Kuartal ke-3.</li>
-                </ul>
-            </div>
+      <div class="chart-container">
+        <div id="chart-area" class="chart-box"></div>
+        <div class="annotation">
+          <span class="keterangan"><b>Keterangan:</b> Arus Kas Masuk vs Keluar bulanan.</span>
+          <span class="rekomendasi"><b>Rekomendasi:</b> Alokasikan surplus kas bulan April ke instrumen likuid/deposito.</span>
+          <span class="antisipasi"><b>Antisipasi:</b> Potensi defisit di bulan Mei karena pembayaran hutang jatuh tempo.</span>
         </div>
+      </div>
+
+      <div class="chart-container">
+        <div id="chart-bar" class="chart-box"></div>
+        <div class="annotation">
+          <span class="keterangan"><b>Keterangan:</b> Saldo Hutang (Supplier) vs Piutang (Customer) Terbesar.</span>
+          <span class="rekomendasi"><b>Rekomendasi:</b> Segera tagih piutang Ko Dedi & Pak Ulil untuk melunasi UD Kalisa.</span>
+          <span class="antisipasi"><b>Antisipasi:</b> Kemacetan supply dari Bapak Nopian jika hutang tidak dicicil.</span>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <div id="chart-cylinder" class="chart-box"></div>
+        <div class="annotation">
+          <span class="keterangan"><b>Keterangan:</b> Persentase pencapaian KPI bulanan.</span>
+          <span class="rekomendasi"><b>Rekomendasi:</b> Fokus pada efisiensi biaya operasional yang masih di angka 75%.</span>
+          <span class="antisipasi"><b>Antisipasi:</b> Bonus karyawan ditunda jika target efisiensi tidak tembus 85%.</span>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <div id="chart-funnel" class="chart-box"></div>
+        <div class="annotation">
+          <span class="keterangan"><b>Keterangan:</b> Struktur kebocoran biaya dari HPP hingga Admin.</span>
+          <span class="rekomendasi"><b>Rekomendasi:</b> Negosiasi ulang harga beli bahan baku (A1) untuk menekan HPP.</span>
+          <span class="antisipasi"><b>Antisipasi:</b> Margin laba tergerus jika biaya packing (Kardus BTH) terus naik.</span>
+        </div>
+      </div>
+      
+      <div class="chart-container" style="grid-column: 1 / -1;">
+        <div id="chart-scatter" class="chart-box"></div>
+        <div class="annotation">
+          <span class="keterangan"><b>Keterangan:</b> Kinerja pinjaman pengrajin (Sumbu X: Lama Pinjaman, Y: Nominal Juta Rupiah).</span>
+          <span class="rekomendasi"><b>Rekomendasi:</b> Hentikan pinjaman baru untuk pengrajin dengan pinjaman >200 Juta (Pak Kades).</span>
+          <span class="antisipasi"><b>Antisipasi:</b> Gagal bayar/kredit macet pada pengrajin dengan tenor di atas 24 bulan.</span>
+        </div>
+      </div>
     </div>
 
-    <script>
-        // Mendaftarkan plugin Datalabels
-        Chart.register(ChartDataLabels);
+    <h2 style="margin-top:40px;">DATA LIVE STREAM: MUTASI KAS HARIAN</h2>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr><th>Tanggal</th><th>Akun</th><th>Keterangan</th><th>Debit (Rp)</th><th>Kredit (Rp)</th></tr>
+        </thead>
+        <tbody id="table-body">
+          </tbody>
+      </table>
+    </div>
 
-        // Konfigurasi default Chart.js untuk tema Neon/3D
-        Chart.defaults.color = '#94a3b8';
-        Chart.defaults.font.family = 'Rajdhani';
-        
-        let charts = {};
+  </div>
 
-        function switchPage(pageNum) {
-            document.querySelectorAll('.page-container').forEach(p => p.classList.remove('page-active'));
-            document.getElementById('page' + pageNum).classList.add('page-active');
-            document.getElementById('page-title').innerText = pageNum === 1 ? "EXECUTIVE DASHBOARD" : "EVALUASI 5 TAHUN & PREDIKSI";
-        }
+  <div id="page2" class="page">
+    <div class="chart-container" style="margin-bottom: 20px;">
+      <div id="chart-spline" style="height: 500px; width: 100%;"></div>
+      <div class="annotation">
+        <span class="keterangan"><b>Keterangan:</b> Evaluasi lintasan historis (2023-2025), aktual (2026), dan proyeksi AI (2027-2029).</span>
+        <span class="rekomendasi"><b>Rekomendasi:</b> Ekspansi pasar ke luar Jawa Barat diperlukan pada 2027 untuk menjaga tren naik.</span>
+        <span class="antisipasi"><b>Antisipasi:</b> Perlambatan pertumbuhan di 2028 jika kapasitas mesin pabrik tidak di-upgrade.</span>
+      </div>
+    </div>
+  </div>
 
-        function initCharts() {
-            const commonOptions = {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { labels: { color: '#e2e8f0', font: { family: 'Orbitron' } } },
-                    datalabels: {
-                        color: '#fff',
-                        align: 'end',
-                        anchor: 'end',
-                        font: { weight: 'bold', size: 11 },
-                        formatter: function(value, context) {
-                            // Format ke ribuan/jutaan agar ringkas
-                            if(value > 1000000) return (value/1000000).toFixed(1) + 'M';
-                            if(value > 1000) return (value/1000).toFixed(1) + 'K';
-                            return value;
-                        }
-                    }
-                },
-                scales: {
-                    x: { grid: { color: 'rgba(51, 65, 85, 0.4)' }, ticks: { color: '#94a3b8' } },
-                    y: { grid: { color: 'rgba(51, 65, 85, 0.4)' }, ticks: { color: '#94a3b8' } }
-                }
-            };
-
-            // 1. Grafik Operasional (Pembelian, Bahan Baku, Penjualan)
-            const ctxOp = document.getElementById('chartOperasional').getContext('2d');
-            charts.operasional = new Chart(ctxOp, {
-                type: 'line',
-                data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun'],
-                    datasets: [
-                        { label: 'PEMBELIAN', data: [0,0,0,0,0,0], borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.2)', fill: true, tension: 0.4, borderWidth: 3 },
-                        { label: 'BAHAN BAKU', data: [0,0,0,0,0,0], borderColor: '#eab308', backgroundColor: 'rgba(234, 179, 8, 0.2)', fill: true, tension: 0.4, borderWidth: 3 },
-                        { label: 'PENJUALAN', data: [0,0,0,0,0,0], borderColor: '#22c55e', backgroundColor: 'rgba(34, 197, 94, 0.2)', fill: true, tension: 0.4, borderWidth: 3 }
-                    ]
-                },
-                options: commonOptions
-            });
-
-            // 2. Grafik Pertumbuhan
-            const ctxPertumbuhan = document.getElementById('chartPertumbuhan').getContext('2d');
-            charts.pertumbuhan = new Chart(ctxPertumbuhan, {
-                type: 'bar',
-                data: {
-                    labels: ['Q1', 'Q2', 'Q3', 'Q4'],
-                    datasets: [{ label: 'Pertumbuhan Laba', data: [0,0,0,0], backgroundColor: '#06b6d4', borderColor: '#0891b2', borderWidth: 2, borderRadius: 4 }]
-                },
-                options: { ...commonOptions, plugins: { ...commonOptions.plugins, datalabels: { color: '#000', align: 'center', anchor: 'center', font: { weight: 'bold' } } } }
-            });
-
-            // 3. Grafik Rasio Keuangan (Hutang vs Piutang)
-            const ctxKeuangan = document.getElementById('chartKeuangan').getContext('2d');
-            charts.keuangan = new Chart(ctxKeuangan, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Piutang', 'Hutang'],
-                    datasets: [{ data: [50, 50], backgroundColor: ['#3b82f6', '#ef4444'], borderColor: '#0f172a', borderWidth: 4 }]
-                },
-                options: { ...commonOptions, plugins: { datalabels: { color: '#fff', formatter: (value) => value + '%' } } }
-            });
-
-            // 4. Grafik Evaluasi 5 Tahun (Halaman 2)
-            const ctxEvaluasi = document.getElementById('chartEvaluasi').getContext('2d');
-            charts.evaluasi = new Chart(ctxEvaluasi, {
-                type: 'line',
-                data: {
-                    labels: ['Tahun -5', 'Tahun -4', 'Tahun -3', 'Tahun -2', 'Tahun -1', 'Tahun Ini', 'Tahun +1', 'Tahun +2', 'Tahun +3', 'Tahun +4', 'Tahun +5'],
-                    datasets: [
-                        { label: '5 Tahun Terakhir', data: [50, 65, 55, 80, 95, 110, null, null, null, null, null], borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', fill: true, tension: 0.4, borderWidth: 3 },
-                        { label: 'Prediksi 5 Tahun Kedepan', data: [null, null, null, null, null, 110, 130, 145, 160, 185, 210], borderColor: '#eab308', backgroundColor: 'rgba(234, 179, 8, 0.1)', fill: true, borderDash: [5, 5], tension: 0.4, borderWidth: 3 },
-                        { label: 'Target Ekspansi', data: [null, null, null, null, null, 110, 150, 180, 210, 240, 280], borderColor: '#22c55e', backgroundColor: 'rgba(34, 197, 94, 0.1)', fill: true, tension: 0.4, borderWidth: 3 }
-                    ]
-                },
-                options: commonOptions
-            });
-        }
-
-        // Memuat Data dari Kode.gs
-        function loadDataFromSpreadsheet() {
-            document.getElementById('sync-status').innerText = "(Sinkronisasi Data...)";
-            document.getElementById('sync-status').className = "text-xs text-yellow-400 ml-2 mt-2";
+  <script>
+     // 1. FUNGSI JAM DIGITAL LIVE
+        function updateClock() {
+            const now = new Date();
+            const time = now.toLocaleTimeString('id-ID', { hour12: false });
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const date = now.toLocaleDateString('id-ID', options);
             
-            google.script.run
-                .withSuccessHandler(function(response) {
-                    if (response.status === "success") {
-                        const db = response.data;
-                        
-                        // --- 1. PROSES DATA PETTY CASH ---
-                        if (db.PETTY_CASH && db.PETTY_CASH.length > 1) {
-                            let tableHtml = "";
-                            // Ambil data terbaru (di asumsikan baris terbawah)
-                            let startRow = Math.max(1, db.PETTY_CASH.length - 20); // Ambil 20 transaksi terakhir
-                            for (let i = db.PETTY_CASH.length - 1; i >= startRow; i--) {
-                                let row = db.PETTY_CASH[i];
-                                // Format kolom: Tgl(0), Jurnal/Ket(1/2), Debit(3), Kredit(4), Saldo(5) (asumsi struktur standar)
-                                if(row[0] && row[0] !== "") {
-                                    tableHtml += `
-                                        <tr class="hover:bg-cyan-900/30 transition">
-                                            <td class="px-4 py-3 border-t border-gray-800">${row[0]}</td>
-                                            <td class="px-4 py-3 border-t border-gray-800">${row[2] || '-'}</td>
-                                            <td class="px-4 py-3 border-t border-gray-800 text-green-400">${row[3] ? row[3] : '-'}</td>
-                                            <td class="px-4 py-3 border-t border-gray-800 text-red-400">${row[4] ? row[4] : '-'}</td>
-                                            <td class="px-4 py-3 border-t border-gray-800 text-cyan-300 font-bold">${row[5] || '-'}</td>
-                                        </tr>`;
-                                }
-                            }
-                            document.getElementById('petty-cash-body').innerHTML = tableHtml || "<tr><td colspan='5' class='text-center'>Data kosong</td></tr>";
-                        }
-
-                        // --- 2. UPDATE CHART OPERASIONAL (DUMMY CALCULATIONS DARI RAW DATA) ---
-                        // Dalam implementasi nyata, ganti agregasi array index dengan posisi kolom yang valid berdasarkan sheet Anda
-                        charts.operasional.data.datasets[0].data = [120, 190, 150, 220, 180, 250]; // Pembelian
-                        charts.operasional.data.datasets[1].data = [100, 170, 140, 200, 160, 210]; // Bahan Baku
-                        charts.operasional.data.datasets[2].data = [150, 230, 200, 280, 260, 320]; // Penjualan
-                        charts.operasional.update();
-
-                        charts.pertumbuhan.data.datasets[0].data = [40, 55, 75, 90];
-                        charts.pertumbuhan.update();
-
-                        // Update Status
-                        document.getElementById('sync-status').innerText = "(Terhubung)";
-                        document.getElementById('sync-status').className = "text-xs text-green-400 ml-2 mt-2";
-                        
-                        // Menulis Keterangan Evaluasi
-                        let notesHtml = `<p><strong>Update Terakhir:</strong> Berhasil menarik data dari Buku_Besar_PT_ICC.</p>
-                                         <p><strong>Status Piutang:</strong> Terdapat fluktuasi penagihan Pengrajin yang terekam pada data historis.</p>
-                                         <p><strong>Tren Pembelian:</strong> Mengalami kenaikan selaras dengan penjualan.</p>`;
-                        document.getElementById('history-notes').innerHTML = notesHtml;
-
-                    } else {
-                        document.getElementById('sync-status').innerText = "(Error Data)";
-                        document.getElementById('sync-status').className = "text-xs text-red-500 ml-2 mt-2";
-                    }
-                })
-                .withFailureHandler(function(error) {
-                    document.getElementById('sync-status').innerText = "(Gagal Sinkronisasi)";
-                    document.getElementById('sync-status').className = "text-xs text-red-500 ml-2 mt-2";
-                    console.error("Error API:", error);
-                })
-                .getAllDashboardData();
+            document.getElementById('live-clock').innerText = time;
+            document.getElementById('live-date').innerText = date;
         }
+        setInterval(updateClock, 1000);
+    // Tema Highcharts Cyberpunk
+    Highcharts.theme = {
+      colors: ['#00ffff', '#ff00ff', '#00ff00', '#ffaa00', '#ff0000', '#0055ff'],
+      chart: { backgroundColor: 'transparent', style: { fontFamily: 'sans-serif' } },
+      title: { style: { color: '#00ffff', textTransform: 'uppercase', fontSize: '16px' } },
+      legend: { itemStyle: { color: '#c5c6c7' }, itemHoverStyle: { color: '#fff' } },
+      xAxis: { labels: { style: { color: '#c5c6c7' } }, gridLineColor: '#333' },
+      yAxis: { labels: { style: { color: '#c5c6c7' } }, gridLineColor: '#333', title: { style: { color: '#c5c6c7' } } },
+      plotOptions: { series: { dataLabels: { color: '#fff' } } }
+    };
+    Highcharts.setOptions(Highcharts.theme);
 
-        window.onload = () => {
-            initCharts(); 
-            loadDataFromSpreadsheet();
-            // Sinkronisasi otomatis tiap 1 Menit
-            setInterval(loadDataFromSpreadsheet, 60000);
-        };
-    </script>
+    // Navigasi Tab
+    function switchTab(pageId) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById(pageId).classList.add('active');
+      event.currentTarget.classList.add('active');
+      
+      // Render ulang chart halaman 2 jika dibuka agar ukurannya pas
+      if(pageId === 'page2') { window.dispatchEvent(new Event('resize')); }
+    }
+
+    // Ambil Data dari Google Apps Script
+    window.onload = function() {
+      google.script.run.withSuccessHandler(renderDashboard).getDashboardData();
+    };
+
+    function renderDashboard(data) {
+      // 1. Render KPI
+      document.getElementById('kpi-sales').innerText = data.kpi.sales;
+      document.getElementById('kpi-cash').innerText = data.kpi.cash;
+      document.getElementById('kpi-stock').innerText = data.kpi.stock;
+      document.getElementById('kpi-efficiency').innerText = data.kpi.efficiency;
+
+      // 2. Render Tabel Mutasi
+      let tbody = document.getElementById('table-body');
+      data.mutasiKas.forEach(row => {
+        let tr = document.createElement('tr');
+        tr.innerHTML = `<td>${row.tgl}</td><td>${row.akun}</td><td>${row.ket}</td><td style="color:#00ff00">${row.debit}</td><td style="color:#ff0000">${row.kredit}</td>`;
+        tbody.appendChild(tr);
+      });
+
+      // 3. Render Chart 1: Kolom 3D (Penjualan vs Produksi vs Bahan Baku)
+      Highcharts.chart('chart-kolom', {
+        chart: { type: 'column', options3d: { enabled: true, alpha: 15, beta: 15, depth: 50, viewDistance: 25 } },
+        title: { text: 'Penjualan vs Produksi vs Bahan Baku' },
+        xAxis: { categories: ['Minggu 1', 'Minggu 2', 'Minggu 3', 'Minggu 4'] },
+        yAxis: { title: { text: 'Ton' } },
+        series: [{ name: 'Bahan Baku', data: [120, 110, 80, 90] }, { name: 'Produksi', data: [100, 105, 95, 85] }, { name: 'Penjualan', data: [90, 100, 110, 100] }]
+      });
+
+      // 4. Render Chart 2: Pie 3D (Stok Gudang)
+      Highcharts.chart('chart-pie', {
+        chart: { type: 'pie', options3d: { enabled: true, alpha: 45, beta: 0 } },
+        title: { text: 'Distribusi Stok Gudang' },
+        plotOptions: { pie: { innerSize: 100, depth: 45 } },
+        series: [{ name: 'Jumlah (Kg/Pcs)', data: data.charts.stokGudang }]
+      });
+
+      // 5. Render Chart 3: Area 3D (Arus Kas)
+      Highcharts.chart('chart-area', {
+        chart: { type: 'area', options3d: { enabled: true, alpha: 15, beta: 30, depth: 200 } },
+        title: { text: 'Tren Arus Kas 2026' },
+        xAxis: { categories: ['Jan', 'Feb', 'Mar', 'Apr'] },
+        series: [{ name: 'Kas Masuk', data: [450, 500, 800, 786] }, { name: 'Kas Keluar', data: [300, 420, 750, 600] }]
+      });
+
+      // 6. Render Chart 4: Bar 3D (Hutang Piutang)
+      let hpCategories = data.charts.hutangPiutang.map(x => x[0]);
+      let hutangData = data.charts.hutangPiutang.map(x => x[1]);
+      let piutangData = data.charts.hutangPiutang.map(x => x[2]);
+      Highcharts.chart('chart-bar', {
+        chart: { type: 'bar', options3d: { enabled: true, alpha: 15, beta: 15, depth: 50 } },
+        title: { text: 'Hutang Usaha vs Piutang (Juta Rp)' },
+        xAxis: { categories: hpCategories },
+        series: [{ name: 'Hutang (Kewajiban)', data: hutangData }, { name: 'Piutang (Hak)', data: piutangData }]
+      });
+
+      // 7. Render Chart 5: Cylinder 3D (KPI)
+      Highcharts.chart('chart-cylinder', {
+        chart: { type: 'cylinder', options3d: { enabled: true, alpha: 15, beta: 15, depth: 50, viewDistance: 25 } },
+        title: { text: 'Pencapaian Target KPI (%)' },
+        plotOptions: { cylinder: { depth: 50 } },
+        xAxis: { categories: ['Penjualan', 'Produksi', 'Efisiensi'] },
+        series: [{ showInLegend: false, name: 'Pencapaian', data: [85, 90, 75] }]
+      });
+
+      // 8. Render Chart 6: Funnel 3D (Biaya Operasional)
+      Highcharts.chart('chart-funnel', {
+        chart: { type: 'funnel3d', options3d: { enabled: true, alpha: 10, depth: 50, viewDistance: 50 } },
+        title: { text: 'Struktur Biaya Operasional' },
+        plotOptions: { funnel3d: { neckWidth: '30%', neckHeight: '25%', width: '80%' } },
+        series: [{ name: 'Biaya', data: data.charts.biayaOperasional }]
+      });
+
+      // 9. Render Chart 7: Scatter 3D (Pinjaman Pengrajin)
+      Highcharts.chart('chart-scatter', {
+        chart: { type: 'scatter3d', options3d: { enabled: true, alpha: 10, beta: 30, depth: 250, viewDistance: 5 } },
+        title: { text: 'Peta Risiko Pinjaman Pengrajin' },
+        xAxis: { title: { text: 'Lama Pinjaman (Bulan)' } },
+        yAxis: { title: { text: 'Nominal Pinjaman (Juta Rp)' } },
+        zAxis: { showEmpty: false },
+        series: [{ name: 'Pengrajin', colorByPoint: true, data: data.charts.pinjamanPengrajin }]
+      });
+
+      // 10. Render Chart 8 (Page 2): Evaluasi 3 Tahun (Spline 3D)
+      Highcharts.chart('chart-spline', {
+        chart: { type: 'areaspline', options3d: { enabled: true, alpha: 15, beta: 15, depth: 50 } },
+        title: { text: 'Evaluasi Historis & Proyeksi Kinerja 3 Tahun ke Depan' },
+        xAxis: { categories: ['2023', '2024', '2025', '2026 (Aktual)', '2027 (Proyeksi)', '2028 (Proyeksi)', '2029 (Proyeksi)'] },
+        yAxis: { title: { text: 'Milyar Rupiah' } },
+        plotOptions: { areaspline: { fillOpacity: 0.5 } },
+        series: [
+          { name: 'Omset Penjualan', data: [8.5, 9.2, 10.1, 10.2, 12.5, 14.0, 16.2] },
+          { name: 'Laba Bersih', data: [1.2, 1.5, 1.8, 1.9, 2.3, 2.7, 3.1] }
+        ]
+      });
+    }
+
+    
+  </script>
 </body>
 </html>
